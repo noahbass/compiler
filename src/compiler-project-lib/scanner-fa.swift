@@ -71,20 +71,20 @@ class DFAState {
 class DFA {
     // A hash map of state id to state details: Each FAState includes what moves
     // are possible based on which character is read. Because we're looking
-    private var representation: [Int: DFAState] = [:]
+//    private var representation: [Int: DFAState] = [:]
     private var currentState: DFAState // begins at the start state
     private let startState: DFAState
     
-    init(states: [DFAState], startState: DFAState) {
-        for state in states {
+    init(startState: DFAState) {
+        /*for state in states {
             let stateId = state.id
             representation[stateId] = state
-        }
+        }*/
         
         // Always start at the start state
-        representation[startState.id] = startState
-        currentState = startState
+        //representation[startState.id] = startState
         self.startState = startState
+        currentState = startState
     }
     
     /**
@@ -120,13 +120,55 @@ class DFA {
 }
 
 
+class WhitespaceDFA: DFA {
+    init() {
+        // accepts 1 or many whitespace characters
+        let q0 = DFAState(id: 0, possibleMoves: [:], isFinalState: true)
+        q0.addMove(character: " ", toState: q0)
+        super.init(startState: q0)
+    }
+}
+
+class NewlineDFA: DFA {
+    init() {
+        // accepts 1 or many "\n" (newline) characters
+        let q0 = DFAState(id: 0, possibleMoves: [:], isFinalState: true)
+        q0.addMove(character: "\n", toState: q0)
+        super.init(startState: q0)
+    }
+}
+
+class CommentDFA: DFA {
+    init() {
+        // accept a double slash (//), any characters after the slash, then a newline character
+        let qf = DFAState(id: 3, isFinalState: true)
+        
+        // all ascii characters after the "//" should be read, stop when we get to a newline character
+        let q2 = DFAState(id: 2, possibleMoves: [:], isFinalState: false)
+        
+        // add all possible self-looping moves from q2 to q2 (all possible ascii values)
+        for n in 0...255 {
+            let character = Character(UnicodeScalar(UInt32(n))!) // convert ascii code to character
+            q2.addMove(character: character, toState: q2)
+        }
+        
+        // modification to q2: "\n" should move to final state
+        q2.addMove(character: "\n", toState: qf)
+        
+        let q1 = DFAState(id: 1, possibleMoves: ["/": q2], isFinalState: false)
+        let q0 = DFAState(id: 0, possibleMoves: ["/": q1], isFinalState: false)
+        
+        super.init(startState: q0)
+    }
+}
+
 class PlusDFA: DFA {
     init() {
         // this dfa has only two states: the start state and final accepting state
         let qf = DFAState(id: 2, isFinalState: true)
         let q0 = DFAState(id: 1, possibleMoves: ["+": qf], isFinalState: false)
         
-        super.init(states: [q0, qf], startState: q0)
+        super.init(startState: q0)
     }
 }
 
@@ -135,7 +177,7 @@ class MinusDFA: DFA {
         let qf = DFAState(id: 2, isFinalState: true)
         let q0 = DFAState(id: 1, possibleMoves: ["-": qf], isFinalState: false)
         
-        super.init(states: [q0, qf], startState: q0)
+        super.init(startState: q0)
     }
 }
 
@@ -144,7 +186,7 @@ class AssignDFA: DFA {
         let qf = DFAState(id: 2, isFinalState: true)
         let q0 = DFAState(id: 1, possibleMoves: ["=": qf], isFinalState: false)
         
-        super.init(states: [q0, qf], startState: q0)
+        super.init(startState: q0)
     }
 }
 
@@ -154,7 +196,7 @@ class EqualDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["=": qf], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["=": q1], isFinalState: false)
         
-        super.init(states: [q0, q1, qf], startState: q0)
+        super.init(startState: q0)
     }
 }
 
@@ -164,7 +206,7 @@ class IfDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["f": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["i": q1], isFinalState: false)
         
-        super.init(states: [q0, q1, q2], startState: q0)
+        super.init(startState: q0)
     }
 }
 
@@ -177,7 +219,7 @@ class WhileDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["h": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["w": q1], isFinalState: false)
         
-        super.init(states: [q0, q1, q2, q3, q4, q5], startState: q0)
+        super.init(startState: q0)
     }
 }
 
@@ -188,7 +230,7 @@ class ForDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["o": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["f": q1], isFinalState: false)
         
-        super.init(states: [q0, q1, q2, qf], startState: q0)
+        super.init(startState: q0)
     }
 }
 
@@ -202,7 +244,7 @@ class ReturnDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["e": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["r": q1], isFinalState: false)
         
-        super.init(states: [q0, q1, q2, q3, q4, q5, qf], startState: q0)
+        super.init(startState: q0)
     }
 }
 
@@ -240,7 +282,7 @@ class IdentifierDFA: DFA {
             q0.addMove(character: character, toState: q0)
         }
         
-        super.init(states: [q0], startState: q0)
+        super.init(startState: q0)
     }
 }
 
