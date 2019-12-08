@@ -20,25 +20,25 @@ struct Move {
 /**
  * A state in finite automata
  */
-struct DFAState {
+class DFAState {
     let id: Int
-    var possibleMoves: [Character: DFAState] // a hash map of characters to read and the corresponding state to move to
+    var transitions: [Character: DFAState] // a hash map of characters to read and the corresponding state to move to
     let isFinalState: Bool
     
     init(id: Int, possibleMoves: [Character: DFAState] = [:], isFinalState: Bool = false) {
         self.id = id
-        self.possibleMoves = possibleMoves
+        self.transitions = possibleMoves
         self.isFinalState = isFinalState
     }
 
     init(id: Int, isFinalState: Bool) {
         self.id = id
-        self.possibleMoves = [:]
+        self.transitions = [:]
         self.isFinalState = isFinalState
     }
     
-    mutating func addMove(character: Character, toState: DFAState) -> Void {
-        self.possibleMoves[character] = toState
+    func addMove(character: Character, toState: DFAState) -> Void {
+        transitions[character] = toState
     }
     
     /**
@@ -47,8 +47,12 @@ struct DFAState {
      */
     func getMove(character: Character) -> DFAState? {
         // Lookup character in the hash map
+        guard let newState = transitions[character] else {
+            // No valid move found with the given character
+            return nil
+        }
         
-        return nil
+        return newState
     }
 }
 
@@ -88,6 +92,13 @@ class DFA {
      */
     func reset() -> Void {
         currentState = startState
+    }
+    
+    /**
+     * Checks if the current state of the DFA is a final state.
+     */
+    func isAcceptingState() -> Bool {
+        return currentState.isFinalState
     }
     
     /**
@@ -199,7 +210,7 @@ class IdentifierDFA: DFA {
     init() {
         // This DFA has a single accepting state that accepts any number of
         // characters 0-9, a-z, and A-Z in any order.
-        var q0 = DFAState(id: 0, possibleMoves: [:], isFinalState: true) // start state
+        let q0 = DFAState(id: 0, possibleMoves: [:], isFinalState: true) // start state
         
         // accept any number of digits 0-9 (every state is a final state)
         for n in 0...9 {
@@ -212,9 +223,9 @@ class IdentifierDFA: DFA {
         // accept any number of strings a-z
         let aCharacterScalar = "a".unicodeScalars
         let aCode = aCharacterScalar[aCharacterScalar.startIndex].value
-        
+
         for n in 0...25 {
-            let character = Character(UnicodeScalar(aCode + UInt32(n))!)
+            let character = Character(String(UnicodeScalar(aCode + UInt32(n))!))
             // Add self-looping transitions from q0 to q0
             q0.addMove(character: character, toState: q0)
         }
@@ -253,14 +264,21 @@ class IdentifierDFA: DFA {
 class ScannerFA {
     var fileHandler: FileHandle
     var filePointer: UInt64 = 0 // where the file we currently are
-//    var symbolTable: [String: TokenType] = [:]  // map token name to type
 
     init(fileName: String) {
         // At this point, the file confirmed to be existing from Compiler.run
         // Safely open a file stream
         self.fileHandler = FileHandle(forReadingAtPath: fileName)!
         
-        // Setup all DFAs to explore in parallel.
+        // Setup all DFAs to explore in parallel (using dovetailing - aka move one step at a time in each DFA until one accepts or all reject).
+        
+        // This compiler has a lookahead of 1, so when feeding characters into a DFA, we stop feeding when we reach a character that cannot acted upon by that DFA, then backtrack to the last valid state (if nececssary in implementation detail). If that last valid state is a final state, then the DFA accepts. If not, then the DFA rejects.
+        
+        // If a DFA accepts, stop all DFAs (dovetailed) and return the token. Then, continue reading.
+        
+        // If all DFAs reject, then the token is an unknown token. Mark it as unknown and continue reading.
+        
+        
         // Stop and accept when the string is fully read and in final state.
         // Stop and reject (mark as unknown token) when the string is fully read and NOT in a final state.
         
