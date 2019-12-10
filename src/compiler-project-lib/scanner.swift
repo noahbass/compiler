@@ -23,14 +23,18 @@ enum TokenType {
     case t_left_paren // (
     case t_right_paren // )
     case t_assign // =
+    case t_equal // ==
     case t_if
     case t_while
     case t_for
     case t_return
     
-    // other usefull tokens
+    // other useful tokens
     case t_end // marks the end of file
     case t_unknown // unrecognized token
+    
+    // ignore any useless characters (comments, whitespace, newlines, etc.)
+    case t_ignore
 }
 
 
@@ -107,8 +111,9 @@ class DFA {
 //    private var representation: [Int: DFAState] = [:]
     private var currentState: DFAState // begins at the start state
     private let startState: DFAState
+    private let tokenType: TokenType // type of token that this DFA accepts
     
-    init(startState: DFAState) {
+    init(startState: DFAState, tokenType: TokenType) {
         /*for state in states {
             let stateId = state.id
             representation[stateId] = state
@@ -118,6 +123,8 @@ class DFA {
         //representation[startState.id] = startState
         self.startState = startState
         currentState = startState
+        
+        self.tokenType = tokenType
     }
     
     /**
@@ -132,6 +139,10 @@ class DFA {
      */
     func isAcceptingState() -> Bool {
         return currentState.isFinalState
+    }
+    
+    func getTokenType() -> TokenType {
+        return tokenType
     }
     
     /**
@@ -153,12 +164,31 @@ class DFA {
 }
 
 
+
+class CommaDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: [",": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_comma)
+    }
+}
+
+class SemicolonDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: [";": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_semicolon)
+    }
+}
+
 class WhitespaceDFA: DFA {
     init() {
         // accepts 1 or many whitespace characters
         let q0 = DFAState(id: 0, possibleMoves: [:], isFinalState: true)
         q0.addMove(character: " ", toState: q0)
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_ignore)
     }
 }
 
@@ -167,7 +197,7 @@ class NewlineDFA: DFA {
         // accepts 1 or many "\n" (newline) characters
         let q0 = DFAState(id: 0, possibleMoves: [:], isFinalState: true)
         q0.addMove(character: "\n", toState: q0)
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_ignore)
     }
 }
 
@@ -192,7 +222,7 @@ class CommentDFA: DFA {
         let q1 = DFAState(id: 1, possibleMoves: ["/": q2], isFinalState: false)
         let q0 = DFAState(id: 0, possibleMoves: ["/": q1], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_ignore)
     }
 }
 
@@ -202,7 +232,7 @@ class PlusDFA: DFA {
         let qf = DFAState(id: 2, isFinalState: true)
         let q0 = DFAState(id: 1, possibleMoves: ["+": qf], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_plus)
     }
 }
 
@@ -211,7 +241,7 @@ class MinusDFA: DFA {
         let qf = DFAState(id: 2, isFinalState: true)
         let q0 = DFAState(id: 1, possibleMoves: ["-": qf], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_minus)
     }
 }
 
@@ -220,7 +250,7 @@ class AssignDFA: DFA {
         let qf = DFAState(id: 2, isFinalState: true)
         let q0 = DFAState(id: 1, possibleMoves: ["=": qf], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_assign)
     }
 }
 
@@ -230,7 +260,7 @@ class EqualDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["=": qf], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["=": q1], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_equal)
     }
 }
 
@@ -240,7 +270,7 @@ class IfDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["f": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["i": q1], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_if)
     }
 }
 
@@ -253,7 +283,7 @@ class WhileDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["h": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["w": q1], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_while)
     }
 }
 
@@ -264,7 +294,7 @@ class ForDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["o": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["f": q1], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_for)
     }
 }
 
@@ -278,7 +308,7 @@ class ReturnDFA: DFA {
         let q1 = DFAState(id: 2, possibleMoves: ["e": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["r": q1], isFinalState: false)
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_return)
     }
 }
 
@@ -316,7 +346,7 @@ class IdentifierDFA: DFA {
             q0.addMove(character: character, toState: q0)
         }
         
-        super.init(startState: q0)
+        super.init(startState: q0, tokenType: .t_identifier)
     }
 }
 
