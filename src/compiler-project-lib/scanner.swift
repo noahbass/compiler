@@ -164,6 +164,59 @@ class DFA {
 }
 
 
+class RightBracketDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: [">": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_right_bracket)
+    }
+}
+
+class LeftBracketDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["<": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_left_bracket)
+    }
+}
+
+class RightCurlyBraceDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["}": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_right_curly_brace)
+    }
+}
+
+class LeftCurlyBraceDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["{": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_left_curly_brace)
+    }
+}
+
+class RightParenDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: [")": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_right_paren)
+    }
+}
+
+class LeftParenDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["(": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_left_paren)
+    }
+}
 
 class CommaDFA: DFA {
     init() {
@@ -242,6 +295,24 @@ class MinusDFA: DFA {
         let q0 = DFAState(id: 1, possibleMoves: ["-": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_minus)
+    }
+}
+
+class MultiplyDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["*": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_multiply)
+    }
+}
+
+class DivideDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["/": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_divide)
     }
 }
 
@@ -381,12 +452,13 @@ class Scanner {
         // This compiler has a lookahead of 1, so when feeding characters into a DFA, we stop feeding when we reach a character that cannot acted upon by that DFA, then backtrack to the last valid state (if nececssary in implementation detail). If that last valid state is a final state, then the DFA accepts. If not, then the DFA rejects.
         
         // If a DFA accepts, stop all DFAs (dovetailed) and return the token. Then, continue reading.
+        // It's possible that multiple DFAs accept, in that case, accept the 'longest' DFA (longest token) - for example, the divide character and a code comment.
         
         // If all DFAs reject, then the token is an unknown token. Mark it as unknown and continue reading.
         
         
         // Stop and accept when the string is fully read and in final state.
-        // Stop and reject (mark as unknown token) when the string is fully read and NOT in a final state.
+        // Stop and reject (mark as unknown token t_unknown) when the string is fully read and NOT in a final state.
         
         /*var result = self.getCharacter()
         while result != nil {
