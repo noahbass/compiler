@@ -22,7 +22,7 @@ enum TokenType {
     case t_right_bracket // >
     case t_left_paren // (
     case t_right_paren // )
-    case t_assign // =
+    case t_assign // :=
     case t_equal // ==
     case t_if
     case t_while
@@ -318,8 +318,10 @@ class DivideDFA: DFA {
 
 class AssignDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
-        let q0 = DFAState(id: 1, possibleMoves: ["=": qf], isFinalState: false)
+        // accepts :=
+        let qf = DFAState(id: 3, isFinalState: true)
+        let q1 = DFAState(id: 2, possibleMoves: ["=": qf], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: [":": q1], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_assign)
     }
