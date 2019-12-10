@@ -34,7 +34,7 @@ final class compilerprojectTests: XCTestCase {
     }
     
     func testAssignDFA() {
-        let input = "="
+        let input = ":="
         let dfa = AssignDFA()
         var currentState: DFAState? = nil
         
@@ -109,6 +109,19 @@ final class compilerprojectTests: XCTestCase {
     func testIdentifierDFA() {
         let input = "helloWorld123"
         let dfa = IdentifierDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertNotNil(currentState)
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testCommentDFA() {
+        let input = "// this is ()only a % test =\t    123\n"
+        let dfa = CommentDFA()
         var currentState: DFAState? = nil
         
         for character in input {
