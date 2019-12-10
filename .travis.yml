@@ -1,0 +1,29 @@
+# Build and test on both Linux and macOS
+# https://docs.travis-ci.com/user/languages/objective-c/
+
+matrix:
+  include:
+    - os: linux
+      language: generic
+      dist: trusty  # todo: try bionic
+      sudo: required
+    - os: osx
+      osx_image: xcode11.2
+      language: swift  # equivalent to objective-c in travis
+      sudo: required
+
+install:
+  - eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
+
+script:
+  - swift --version
+  - swift build
+  - swift test
+
+# after_success:
+#   - bash <(curl -s https://codecov.io/bash)
+
+notifications:
+  email:
+    on_success: never
+    on_failure: change
