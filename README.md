@@ -1,5 +1,7 @@
 # compiler-project
 
+[![MIT license](https://img.shields.io/github/license/noahbass/compiler.svg)](https://opensource.org/licenses/MIT) [![Build Status](https://travis-ci.com/noahbass/compiler.svg?branch=master)](https://travis-ci.com/noahbass/compiler)
+
 > (work in progress) A recursive descent compiler (LL(1)) written in Swift
 
 ## Goals
