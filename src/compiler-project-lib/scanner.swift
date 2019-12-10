@@ -7,6 +7,28 @@ enum TokenType {
     // general types
     case t_identifier
     
+    // reserved keywords
+    case t_variable // variable
+    case t_integer // integer
+    case t_bool // bool
+    case t_global // global
+    case t_begin // begin
+    case t_end // end
+    case t_program // program
+    case t_end_program // "end program." or "end program ."
+    case t_is // is
+    case t_if
+    case t_else
+    case t_then
+    case t_while
+    case t_for
+    case t_return
+    case t_procedure // procedure
+    
+    case t_put_integer // putInteger function call (not sure what this is for yet)
+    case t_put_string // putString function call (not sure what this is for yet)
+    case t_get_bool // getBool function call (not sure what this is for yet)
+    
     // operators
     case t_plus
     case t_minus
@@ -16,6 +38,9 @@ enum TokenType {
     // reserved words
     case t_semicolon // ;
     case t_comma // ,
+    case t_quote // "
+    case t_left_square_brace // [
+    case t_right_square_brace // ]
     case t_left_curly_brace // {
     case t_right_curly_brace // }
     case t_left_bracket // <
@@ -24,13 +49,9 @@ enum TokenType {
     case t_right_paren // )
     case t_assign // :=
     case t_equal // ==
-    case t_if
-    case t_while
-    case t_for
-    case t_return
     
     // other useful tokens
-    case t_end // marks the end of file
+    case t_end_of_file // marks the end of file
     case t_unknown // unrecognized token
     
     // ignore any useless characters (comments, whitespace, newlines, etc.)
@@ -182,6 +203,24 @@ class LeftBracketDFA: DFA {
     }
 }
 
+class RightSquareBraceDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["]": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_right_square_brace)
+    }
+}
+
+class LeftSquareBraceDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["[": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_left_square_brace)
+    }
+}
+
 class RightCurlyBraceDFA: DFA {
     init() {
         let qf = DFAState(id: 2, isFinalState: true)
@@ -227,6 +266,15 @@ class CommaDFA: DFA {
     }
 }
 
+class QuoteDFA: DFA {
+    init() {
+        let qf = DFAState(id: 2, isFinalState: true)
+        let q0 = DFAState(id: 1, possibleMoves: ["\"": qf], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_quote)
+    }
+}
+
 class SemicolonDFA: DFA {
     init() {
         let qf = DFAState(id: 2, isFinalState: true)
@@ -254,6 +302,7 @@ class NewlineDFA: DFA {
     }
 }
 
+// TODO: handle nested comments
 class CommentDFA: DFA {
     // TODO: check if this DFA when a comment is at the end of a file with no "\n" character, just EOF
     init() {
