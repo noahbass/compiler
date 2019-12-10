@@ -1,21 +1,20 @@
 # Build and test on both Linux and macOS
 # https://docs.travis-ci.com/user/languages/objective-c/
 
-matrix:
+jobs:
   include:
     - os: linux
       language: generic
       dist: trusty  # todo: try bionic
-      sudo: required
     - os: osx
       osx_image: xcode11.2
       language: swift  # equivalent to objective-c in travis
-      sudo: required
 
 install:
   - eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
 
 script:
+  - mkdir Tests && cp test/LinuxMain.swift Tests/LinuxMain.swift  # swift expects this file to be in the Tests/ directory on linux
   - swift --version
   - swift build
   - swift test
