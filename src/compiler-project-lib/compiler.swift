@@ -13,7 +13,7 @@ enum FileError: Error {
 public class Compiler {
     let inputFilePath: String
     static var currentLine = 1
-    static var currentColumn = 1
+    static var currentColumn = 0
     var errorFlags: [String] = []
     var warningFlags: [String] = []
     
@@ -36,7 +36,7 @@ public class Compiler {
         }
         
         // file is confirmed as existing and readable, continue
-        let scanner = Scanner(fileName: inputFilePath)
+        let scanner = FAScanner(fileName: inputFilePath)
     }
     
     func reportError(message: String) -> Void {
