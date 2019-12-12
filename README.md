@@ -32,6 +32,8 @@ $ swift test
 
 The scanner (or lexical analyzer) is written as many Deterministic Finite Automaton (DFA) machines, all explored in parallel until one accepts or none accept (marked as an unknown token). The scanner produces a stream of tokens.
 
+This approach to the writing the scanner is definitely not as time efficient as writing a single large DFA, but it was still interesting to implement.
+
 ## License
 
 [MIT](LICENSE)
