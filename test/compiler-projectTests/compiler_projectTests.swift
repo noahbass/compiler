@@ -12,7 +12,7 @@ final class compilerprojectTests: XCTestCase {
         XCTAssertEqual("Hello, World!", "Hello, World!")
     }
     
-    func testSimpleTokenStream() {
+    func testSimpleTokenStream1() {
         let filePath = String(testFolderPath + "/scanner-test-input-1.txt")
         let scanner = FAScanner(fileName: filePath)
         
@@ -40,34 +40,55 @@ final class compilerprojectTests: XCTestCase {
         }
     }
     
+    func testSimpleTokenStream2() {
+        let filePath = String(testFolderPath + "/scanner-test-input-2.txt")
+        let scanner = FAScanner(fileName: filePath)
+        
+        // Ensure scanner outputs the correct token types and values in the correct order
+        let expectedTokens = [
+            Token(type: .t_identifier, lexeme: "b"),
+            Token(type: .t_assign, lexeme: ":="),
+            Token(type: .t_identifier, lexeme: "3"),
+            Token(type: .t_semicolon, lexeme: ";"),
+            Token(type: .t_identifier, lexeme: "y"),
+            Token(type: .t_assign, lexeme: ":="),
+            Token(type: .t_identifier, lexeme: "b"),
+            Token(type: .t_semicolon, lexeme: ";"),
+            Token(type: .t_identifier, lexeme: "a"),
+            Token(type: .t_assign, lexeme: ":="),
+            Token(type: .t_identifier, lexeme: "3"),
+            Token(type: .t_semicolon, lexeme: ";"),
+            Token(type: .t_identifier, lexeme: "a"),
+            Token(type: .t_assign, lexeme: ":="),
+            Token(type: .t_identifier, lexeme: "f"),
+            Token(type: .t_left_paren, lexeme: "("),
+            Token(type: .t_identifier, lexeme: "3"),
+            Token(type: .t_right_paren, lexeme: ")"),
+            Token(type: .t_semicolon, lexeme: ";")
+        ]
+        
+        var realTokens: [Token] = []
+        var token = scanner.getToken()
+        while token.type != .t_end_of_file {
+            realTokens += [token]
+            token = scanner.getToken()
+        }
+        
+        // Assert each token is what is expected
+        XCTAssertEqual(expectedTokens.count, realTokens.count)
+        
+        for i in 0...(realTokens.count - 1) {
+            XCTAssertEqual(expectedTokens[i].type, realTokens[i].type)
+            XCTAssertEqual(expectedTokens[i].lexeme, realTokens[i].lexeme)
+        }
+    }
+    
     func testPlusDFA() {
         let input = "+"
         let dfa = PlusDFA()
         var currentState: DFAState? = nil
         
         for character in input {
-            currentState = dfa.nextMove(character: character)
-        }
-        
-        XCTAssertTrue(currentState!.isFinalState)
-    }
-    
-    func testTestDFA() {
-        let input = ":"
-        let dfa = TestDFA()
-        var currentState: DFAState? = nil
-        
-        for character in input {
-            currentState = dfa.nextMove(character: character)
-        }
-        
-        XCTAssertTrue(currentState!.isFinalState)
-        
-        dfa.reset()
-        
-        let input2 = ":="
-        
-        for character in input2 {
             currentState = dfa.nextMove(character: character)
         }
         
