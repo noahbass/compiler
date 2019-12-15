@@ -130,10 +130,176 @@ final class compilerprojectTests: XCTestCase {
         
         XCTAssertTrue(currentState!.isFinalState)
     }
+
+    func testVariableDFA() {
+        let input = "variable"
+        let dfa = VariableDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testIntegerDFA() {
+        let input = "integer"
+        let dfa = IntegerDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testBoolDFA() {
+        let input = "bool"
+        let dfa = BoolDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testGlobalDFA() {
+        let input = "global"
+        let dfa = GlobalDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testBeginDFA() {
+        let input = "begin"
+        let dfa = BeginDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testEndDFA() {
+        let input = "end"
+        let dfa = EndDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testProgramDFA() {
+        let input = "program"
+        let dfa = ProgramDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+        
+        let badInput = "progamm"
+        dfa.reset()
+        currentState = nil
+        
+        for character in badInput {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState == nil)
+    }
+    
+    func testEndProgramDFA1() {
+        let input = "end program."
+        let dfa = EndProgramDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testEndProgramDFA2() {
+        let input = "end program ."
+        let dfa = EndProgramDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+
+    func testIsDFA() {
+        let input = "is"
+        let dfa = IsDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testProcedureDFA() {
+        let input = "procedure"
+        let dfa = ProcedureDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
     
     func testIfDFA() {
         let input = "if"
         let dfa = IfDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testElseDFA() {
+        let input = "else"
+        let dfa = ElseDFA()
+        var currentState: DFAState? = nil
+        
+        for character in input {
+            currentState = dfa.nextMove(character: character)
+        }
+        
+        XCTAssertTrue(currentState!.isFinalState)
+    }
+    
+    func testThenDFA() {
+        let input = "then"
+        let dfa = ThenDFA()
         var currentState: DFAState? = nil
         
         for character in input {

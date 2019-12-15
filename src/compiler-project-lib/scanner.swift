@@ -445,6 +445,151 @@ class EqualDFA: DFA {
     }
 }
 
+class IntegerDFA: DFA {
+    init() {
+        let qf = DFAState(id: 8, isFinalState: true, token: .t_integer)
+        let q6 = DFAState(id: 7, possibleMoves: ["r": qf], isFinalState: false)
+        let q5 = DFAState(id: 6, possibleMoves: ["e": q6], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["g": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["e": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["t": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["n": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["i": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_integer)
+    }
+}
+
+class BoolDFA: DFA {
+    init() {
+        let qf = DFAState(id: 5, isFinalState: true, token: .t_bool)
+        let q3 = DFAState(id: 4, possibleMoves: ["l": qf], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["o": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["o": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["b": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_bool)
+    }
+}
+
+class GlobalDFA: DFA {
+    init() {
+        let qf = DFAState(id: 7, isFinalState: true, token: .t_global)
+        let q5 = DFAState(id: 6, possibleMoves: ["l": qf], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["a": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["b": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["o": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["l": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["g": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_global)
+    }
+}
+
+class BeginDFA: DFA {
+    init() {
+        let qf = DFAState(id: 6, isFinalState: true, token: .t_begin)
+        let q4 = DFAState(id: 5, possibleMoves: ["n": qf], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["i": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["g": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["e": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["b": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_begin)
+    }
+}
+
+class EndDFA: DFA {
+    init() {
+        let qf = DFAState(id: 4, isFinalState: true, token: .t_end)
+        let q2 = DFAState(id: 3, possibleMoves: ["d": qf], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["n": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["e": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_end)
+    }
+}
+
+class ProgramDFA: DFA {
+    init() {
+        let qf = DFAState(id: 8, isFinalState: true, token: .t_program)
+        let q6 = DFAState(id: 7, possibleMoves: ["m": qf], isFinalState: false)
+        let q5 = DFAState(id: 6, possibleMoves: ["a": q6], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["r": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["g": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["o": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["r": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["p": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_program)
+    }
+}
+
+class EndProgramDFA: DFA {
+    init() {
+        // Accepts "end program." or "end program ."
+        let qf = DFAState(id: 14, isFinalState: true, token: .t_end_program)
+        let q12 = DFAState(id: 13, possibleMoves: [".": qf], isFinalState: false)
+        let q11 = DFAState(id: 12, possibleMoves: [".": qf, " ": q12], isFinalState: false)
+        let q10 = DFAState(id: 11, possibleMoves: ["m": q11], isFinalState: false)
+        let q9 = DFAState(id: 10, possibleMoves: ["a": q10], isFinalState: false)
+        let q8 = DFAState(id: 9, possibleMoves: ["r": q9], isFinalState: false)
+        let q7 = DFAState(id: 8, possibleMoves: ["g": q8], isFinalState: false)
+        let q6 = DFAState(id: 7, possibleMoves: ["o": q7], isFinalState: false)
+        let q5 = DFAState(id: 6, possibleMoves: ["r": q6], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["p": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: [" ": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["d": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["n": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["e": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_end_program)
+    }
+}
+
+class IsDFA: DFA {
+    init() {
+        let qf = DFAState(id: 3, isFinalState: true, token: .t_is)
+        let q1 = DFAState(id: 2, possibleMoves: ["s": qf], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["i": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_is)
+    }
+}
+
+class ProcedureDFA: DFA {
+    init() {
+        let qf = DFAState(id: 10, isFinalState: true, token: .t_procedure)
+        let q8 = DFAState(id: 9, possibleMoves: ["e": qf], isFinalState: false)
+        let q7 = DFAState(id: 8, possibleMoves: ["r": q8], isFinalState: false)
+        let q6 = DFAState(id: 7, possibleMoves: ["u": q7], isFinalState: false)
+        let q5 = DFAState(id: 6, possibleMoves: ["d": q6], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["e": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["c": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["o": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["r": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["p": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_procedure)
+    }
+}
+
+class VariableDFA: DFA {
+    init() {
+        let qf = DFAState(id: 9, isFinalState: true, token: .t_variable)
+        let q7 = DFAState(id: 8, possibleMoves: ["e": qf], isFinalState: false)
+        let q6 = DFAState(id: 7, possibleMoves: ["l": q7], isFinalState: false)
+        let q5 = DFAState(id: 6, possibleMoves: ["b": q6], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["a": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["i": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["r": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["a": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["v": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_variable)
+    }
+}
+
 class IfDFA: DFA {
     init() {
         let q2 = DFAState(id: 3, isFinalState: true, token: .t_if)
@@ -452,6 +597,30 @@ class IfDFA: DFA {
         let q0 = DFAState(id: 1, possibleMoves: ["i": q1], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_if)
+    }
+}
+
+class ElseDFA: DFA {
+    init() {
+        let qf = DFAState(id: 5, isFinalState: true, token: .t_else)
+        let q3 = DFAState(id: 4, possibleMoves: ["e": qf], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["s": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["l": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["e": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_else)
+    }
+}
+
+class ThenDFA: DFA {
+    init() {
+        let qf = DFAState(id: 5, isFinalState: true, token: .t_then)
+        let q3 = DFAState(id: 4, possibleMoves: ["n": qf], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["e": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["h": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["t": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_then)
     }
 }
 
@@ -535,6 +704,56 @@ class IdentifierDFA: DFA {
     }
 }
 
+class PutIntegerDFA: DFA {
+    init() {
+        let qf = DFAState(id: 11, isFinalState: true, token: .t_put_integer)
+        let q9 = DFAState(id: 10, possibleMoves: ["r": qf], isFinalState: false)
+        let q8 = DFAState(id: 9, possibleMoves: ["e": q9], isFinalState: false)
+        let q7 = DFAState(id: 8, possibleMoves: ["g": q8], isFinalState: false)
+        let q6 = DFAState(id: 7, possibleMoves: ["e": q7], isFinalState: false)
+        let q5 = DFAState(id: 6, possibleMoves: ["t": q6], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["n": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["I": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["t": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["u": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["p": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_put_integer)
+    }
+}
+
+class PutStringDFA: DFA {
+    init() {
+        let qf = DFAState(id: 10, isFinalState: true, token: .t_put_string)
+        let q8 = DFAState(id: 9, possibleMoves: ["g": qf], isFinalState: false)
+        let q7 = DFAState(id: 8, possibleMoves: ["n": q8], isFinalState: false)
+        let q6 = DFAState(id: 7, possibleMoves: ["i": q7], isFinalState: false)
+        let q5 = DFAState(id: 6, possibleMoves: ["r": q6], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["t": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["S": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["t": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["u": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["p": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_put_string)
+    }
+}
+
+class GetBoolDFA: DFA {
+    init() {
+        let qf = DFAState(id: 8, isFinalState: true, token: .t_get_bool)
+        let q6 = DFAState(id: 7, possibleMoves: ["l": qf], isFinalState: false)
+        let q5 = DFAState(id: 6, possibleMoves: ["o": q6], isFinalState: false)
+        let q4 = DFAState(id: 5, possibleMoves: ["o": q5], isFinalState: false)
+        let q3 = DFAState(id: 4, possibleMoves: ["B": q4], isFinalState: false)
+        let q2 = DFAState(id: 3, possibleMoves: ["t": q3], isFinalState: false)
+        let q1 = DFAState(id: 2, possibleMoves: ["e": q2], isFinalState: false)
+        let q0 = DFAState(id: 1, possibleMoves: ["g": q1], isFinalState: false)
+        
+        super.init(startState: q0, tokenType: .t_get_bool)
+    }
+}
+
 
 /**
  * Performs lexical analysis (scanning) on a given file
@@ -578,11 +797,26 @@ public class FAScanner {
         dfa.union(DivideDFA())
         dfa.union(AssignDFA())
         dfa.union(EqualDFA())
+        dfa.union(IdentifierDFA())
+        dfa.union(VariableDFA())
+        dfa.union(IntegerDFA())
+        dfa.union(BoolDFA())
+        dfa.union(GlobalDFA())
+        dfa.union(BeginDFA())
+        dfa.union(EndDFA())
+        dfa.union(ProgramDFA())
+        dfa.union(EndProgramDFA())
+        dfa.union(IsDFA())
+        dfa.union(ProcedureDFA())
         dfa.union(IfDFA())
+        dfa.union(ElseDFA())
+        dfa.union(ThenDFA())
         dfa.union(WhileDFA())
         dfa.union(ReturnDFA())
-        dfa.union(IdentifierDFA())
         dfa.union(ForDFA())
+        dfa.union(PutIntegerDFA())
+        dfa.union(PutStringDFA())
+        dfa.union(GetBoolDFA())
     }
     
     deinit {
