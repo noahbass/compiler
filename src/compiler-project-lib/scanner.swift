@@ -54,24 +54,19 @@ enum TokenType {
     // other useful tokens
     case t_end_of_file // marks the end of file
     case t_unknown // unrecognized token
+    case t_non_final
     
     // ignore any useless characters (comments, whitespace, newlines, etc.)
     case t_ignore
 }
 
 
-struct Token {
+public struct Token {
     let type: TokenType // the 'part of speech' of the token
     // TODO: make lexeme nullable for non-indentifier types
     let lexeme: String // the 'value' of the token (one or more characters than form a word is called a lexeme)
     let row: Int = 0 // TODO: where the token was encountered
     let column: Int = 0 // TODO: where the token was encountered
-}
-
-enum DFAStatus {
-    case running // DFA is still reading input
-    case accepted
-    case rejected
 }
 
 /**
@@ -81,17 +76,27 @@ class DFAState {
     let id: Int
     var transitions: [Character: DFAState] // a hash map of characters to read and the corresponding state to move to
     let isFinalState: Bool
+    let tokenType: TokenType // if this state is final, designate which token it accepts
     
     init(id: Int, possibleMoves: [Character: DFAState] = [:], isFinalState: Bool = false) {
         self.id = id
         self.transitions = possibleMoves
         self.isFinalState = isFinalState
+        self.tokenType = .t_non_final
     }
 
+    init(id: Int, isFinalState: Bool, token: TokenType) {
+        self.id = id
+        transitions = [:]
+        self.isFinalState = isFinalState
+        tokenType = token
+    }
+    
     init(id: Int, isFinalState: Bool) {
         self.id = id
-        self.transitions = [:]
+        transitions = [:]
         self.isFinalState = isFinalState
+        tokenType = .t_non_final
     }
     
     func addMove(character: Character, toState: DFAState) -> Void {
@@ -131,12 +136,9 @@ class DFA {
 //    private var representation: [Int: DFAState] = [:]
     private var currentState: DFAState // begins at the start state
     let startState: DFAState
-    private var status: DFAStatus
     private let tokenType: TokenType // type of token that this DFA accepts
-    private var tokenValue = "" // token value (lexeme) so far
     
     init(startState: DFAState, tokenType: TokenType) {
-        status = .running
         self.tokenType = tokenType
         // Always start at the start state
         self.startState = startState
@@ -161,65 +163,47 @@ class DFA {
         return tokenType
     }
     
-    func getTokenValue() -> String {
-        return tokenValue
-    }
-    
-    func getTokenLength() -> Int {
-        return tokenValue.count
-    }
-    
     /**
      * Given a character, move to the next state if there is a valid state to move to.
      * The new state could be a final state (the caller can check with .isFinalState).
+     *
+     * To peek, the caller can specify `persistMove = false`.
      */
-    func nextMove(character: Character) -> DFAState? {
+    func nextMove(character: Character, persistMove: Bool = true) -> DFAState? {
         guard let nextState = currentState.getMove(character: character) else {
             // No valid state to make a move to
-            status = .rejected
             return nil
         }
         
-        tokenValue = tokenValue + String(character)
-        
-        // Make move
-        currentState = nextState
-        
-        if currentState.isFinalState {
-            status = .accepted
+        // Make move and save
+        if persistMove {
+            currentState = nextState
         }
         
         // Return new state (it may be the final state - the caller can check with .isFinalState)
-        return currentState
+        return nextState
     }
     
     /**
      * Peek at the next move. Returns whether that move is accepting or not accepting.
      */
-    func peekNextMove(character: Character) -> Bool {
-        guard let nextState = currentState.getMove(character: character) else {
-            // No valid state to make a move to
-            return false
-        }
-        
-        // A next state exists, but is it an accepting state?
-        if nextState.isFinalState {
-            return true
-        }
-        
-        return false
+    func peekNextMove(character: Character) -> DFAState? {
+        return self.nextMove(character: character, persistMove: false)
     }
     
     /**
      * "Merge" this DFA with another given DFA.
      * This merge is somewhat simple because with a lookahead of 1, we know
      * that conflicts of more than 1 character are not possible.
+     *
+     * TODO: make this function into an actual 'union' function
      */
-    func union(otherDFA: DFA) -> Void {
+    func union(_ otherDFA: DFA) -> Void {
         // Check if the first move in the otherDFA already exist in this DFA
         let transitions = startState.transitions
         var otherTransitions = otherDFA.startState.transitions
         
+        // TODO: clean this function up
         for transition in transitions {
             let character = transition.key
             
@@ -227,24 +211,21 @@ class DFA {
                 if character == otherTransition.key {
                     // There is a transition in common from the start states of
                     // both DFAs, resolve conflict and remove transition from otherTransitions
-                    
-                    // There is a transition in common from the start states
-                    let secondOtherState = otherDFA.startState.transitions[character]!
                     let secondOtherCharacters = otherDFA.startState.transitions[character]!.transitions
                     
                     for (otherCharacter, _) in secondOtherCharacters {
+                        let secondOtherState = otherDFA.startState.transitions[character]!.transitions[otherCharacter]!
                         startState.transitions[character]?.addMove(character: otherCharacter, toState: secondOtherState)
                     }
                     
                     otherTransitions.removeValue(forKey: character)
-//                    startState.transitions[character]?.addMove(character: , toState: secondOtherState)
                 }
             }
         }
         
         // Create new transitions from the start state with the remaining transitions in otherTransitions
         for otherTransition in otherTransitions {
-            startState.addMove(character: otherTransition.key, toState: otherDFA.startState)
+            startState.addMove(character: otherTransition.key, toState: otherDFA.startState.transitions[otherTransition.key]!)
         }
     }
 }
@@ -252,7 +233,7 @@ class DFA {
 
 class RightBracketDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_right_bracket)
         let q0 = DFAState(id: 1, possibleMoves: [">": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_right_bracket)
@@ -261,7 +242,7 @@ class RightBracketDFA: DFA {
 
 class LeftBracketDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_left_bracket)
         let q0 = DFAState(id: 1, possibleMoves: ["<": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_left_bracket)
@@ -270,7 +251,7 @@ class LeftBracketDFA: DFA {
 
 class RightSquareBraceDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_right_square_brace)
         let q0 = DFAState(id: 1, possibleMoves: ["]": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_right_square_brace)
@@ -279,7 +260,7 @@ class RightSquareBraceDFA: DFA {
 
 class LeftSquareBraceDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_left_square_brace)
         let q0 = DFAState(id: 1, possibleMoves: ["[": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_left_square_brace)
@@ -288,7 +269,7 @@ class LeftSquareBraceDFA: DFA {
 
 class RightCurlyBraceDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_right_curly_brace)
         let q0 = DFAState(id: 1, possibleMoves: ["}": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_right_curly_brace)
@@ -297,7 +278,7 @@ class RightCurlyBraceDFA: DFA {
 
 class LeftCurlyBraceDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_left_curly_brace)
         let q0 = DFAState(id: 1, possibleMoves: ["{": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_left_curly_brace)
@@ -306,7 +287,7 @@ class LeftCurlyBraceDFA: DFA {
 
 class RightParenDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_right_paren)
         let q0 = DFAState(id: 1, possibleMoves: [")": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_right_paren)
@@ -315,7 +296,7 @@ class RightParenDFA: DFA {
 
 class LeftParenDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_left_paren)
         let q0 = DFAState(id: 1, possibleMoves: ["(": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_left_paren)
@@ -324,7 +305,7 @@ class LeftParenDFA: DFA {
 
 class CommaDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_comma)
         let q0 = DFAState(id: 1, possibleMoves: [",": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_comma)
@@ -333,7 +314,7 @@ class CommaDFA: DFA {
 
 class QuoteDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_quote)
         let q0 = DFAState(id: 1, possibleMoves: ["\"": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_quote)
@@ -342,7 +323,7 @@ class QuoteDFA: DFA {
 
 class SemicolonDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_semicolon)
         let q0 = DFAState(id: 1, possibleMoves: [";": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_semicolon)
@@ -351,7 +332,7 @@ class SemicolonDFA: DFA {
 
 class ColonDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_colon)
         let q0 = DFAState(id: 1, possibleMoves: [":": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_colon)
@@ -361,7 +342,7 @@ class ColonDFA: DFA {
 class WhitespaceDFA: DFA {
     init() {
         // accepts 1 or many whitespace characters
-        let qf = DFAState(id: 1, possibleMoves: [:], isFinalState: true)
+        let qf = DFAState(id: 1, isFinalState: true, token: .t_ignore)
         qf.addMove(character: " ", toState: qf)
         let q0 = DFAState(id: 0, possibleMoves: [" ": qf], isFinalState: false)
 
@@ -372,7 +353,7 @@ class WhitespaceDFA: DFA {
 class NewlineDFA: DFA {
     init() {
         // accepts 1 or many "\n" (newline) characters
-        let qf = DFAState(id: 1, possibleMoves: [:], isFinalState: true)
+        let qf = DFAState(id: 1, isFinalState: true, token: .t_ignore)
         qf.addMove(character: "\n", toState: qf)
         let q0 = DFAState(id: 0, possibleMoves: ["\n": qf], isFinalState: false)
         
@@ -385,7 +366,7 @@ class CommentDFA: DFA {
     // TODO: check if this DFA when a comment is at the end of a file with no "\n" character, just EOF
     init() {
         // accept a double slash (//), any characters after the slash, then a newline character
-        let qf = DFAState(id: 3, isFinalState: true)
+        let qf = DFAState(id: 3, isFinalState: true, token: .t_ignore)
         
         // all ascii characters after the "//" should be read, stop when we get to a newline character
         let q2 = DFAState(id: 2, possibleMoves: [:], isFinalState: false)
@@ -409,7 +390,7 @@ class CommentDFA: DFA {
 class PlusDFA: DFA {
     init() {
         // this dfa has only two states: the start state and final accepting state
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_plus)
         let q0 = DFAState(id: 1, possibleMoves: ["+": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_plus)
@@ -418,7 +399,7 @@ class PlusDFA: DFA {
 
 class MinusDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_minus)
         let q0 = DFAState(id: 1, possibleMoves: ["-": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_minus)
@@ -427,7 +408,7 @@ class MinusDFA: DFA {
 
 class MultiplyDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_multiply)
         let q0 = DFAState(id: 1, possibleMoves: ["*": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_multiply)
@@ -436,7 +417,7 @@ class MultiplyDFA: DFA {
 
 class DivideDFA: DFA {
     init() {
-        let qf = DFAState(id: 2, isFinalState: true)
+        let qf = DFAState(id: 2, isFinalState: true, token: .t_divide)
         let q0 = DFAState(id: 1, possibleMoves: ["/": qf], isFinalState: false)
         
         super.init(startState: q0, tokenType: .t_divide)
@@ -446,7 +427,7 @@ class DivideDFA: DFA {
 class AssignDFA: DFA {
     init() {
         // accepts :=
-        let qf = DFAState(id: 3, isFinalState: true)
+        let qf = DFAState(id: 3, isFinalState: true, token: .t_assign)
         let q1 = DFAState(id: 2, possibleMoves: ["=": qf], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: [":": q1], isFinalState: false)
         
@@ -456,7 +437,7 @@ class AssignDFA: DFA {
 
 class EqualDFA: DFA {
     init() {
-        let qf = DFAState(id: 3, isFinalState: true)
+        let qf = DFAState(id: 3, isFinalState: true, token: .t_equal)
         let q1 = DFAState(id: 2, possibleMoves: ["=": qf], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["=": q1], isFinalState: false)
         
@@ -466,7 +447,7 @@ class EqualDFA: DFA {
 
 class IfDFA: DFA {
     init() {
-        let q2 = DFAState(id: 3, isFinalState: true)
+        let q2 = DFAState(id: 3, isFinalState: true, token: .t_if)
         let q1 = DFAState(id: 2, possibleMoves: ["f": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["i": q1], isFinalState: false)
         
@@ -476,7 +457,7 @@ class IfDFA: DFA {
 
 class WhileDFA: DFA {
     init() {
-        let q5 = DFAState(id: 6, isFinalState: true)
+        let q5 = DFAState(id: 6, isFinalState: true, token: .t_while)
         let q4 = DFAState(id: 5, possibleMoves: ["e": q5], isFinalState: false)
         let q3 = DFAState(id: 4, possibleMoves: ["l": q4], isFinalState: false)
         let q2 = DFAState(id: 3, possibleMoves: ["i": q3], isFinalState: false)
@@ -489,7 +470,7 @@ class WhileDFA: DFA {
 
 class ForDFA: DFA {
     init() {
-        let qf = DFAState(id: 4, isFinalState: true)
+        let qf = DFAState(id: 4, isFinalState: true, token: .t_for)
         let q2 = DFAState(id: 3, possibleMoves: ["r": qf], isFinalState: false)
         let q1 = DFAState(id: 2, possibleMoves: ["o": q2], isFinalState: false)
         let q0 = DFAState(id: 1, possibleMoves: ["f": q1], isFinalState: false)
@@ -500,7 +481,7 @@ class ForDFA: DFA {
 
 class ReturnDFA: DFA {
     init() {
-        let qf = DFAState(id: 6, isFinalState: true)
+        let qf = DFAState(id: 6, isFinalState: true, token: .t_return)
         let q5 = DFAState(id: 5, possibleMoves: ["n": qf], isFinalState: false)
         let q4 = DFAState(id: 5, possibleMoves: ["r": q5], isFinalState: false)
         let q3 = DFAState(id: 4, possibleMoves: ["u": q4], isFinalState: false)
@@ -512,21 +493,12 @@ class ReturnDFA: DFA {
     }
 }
 
-class TestDFA: DFA {
-    init() {
-        let dfa1 = ColonDFA()
-        dfa1.union(otherDFA: AssignDFA())
-        
-        super.init(startState: dfa1.startState, tokenType: .t_colon)
-    }
-}
-
 class IdentifierDFA: DFA {
     init() {
         // This DFA has a single accepting state that accepts any number of
         // characters 0-9, a-z, and A-Z in any order.
         let q0 = DFAState(id: 0, possibleMoves: [:], isFinalState: false) // start state
-        let qf = DFAState(id: 1, possibleMoves: [:], isFinalState: true)
+        let qf = DFAState(id: 1, isFinalState: true, token: .t_identifier)
         
         // accept any number of digits 0-9 (every state is a final state)
         for n in 0...9 {
@@ -570,21 +542,13 @@ class IdentifierDFA: DFA {
  * This scanner uses a finite state machine to read symbols. The scanner
  * uses the state machine to recognize tokens.
  *
- * Finite state machine needs: all possible states the machine can be in (finite), the initial state, a set of accepting states, and a set of transitions.
- *
- * Each token type has a corresponding DFA. All DFAs are explored in parallel, one move per
- * character in the character stream. If moves
- *
- * DFAs are represented by a hash map of all states and each state contains a
- * hash map of valid moves. The value of each cell says
- * what the next state should be (where to move). The DFA starts at state 0 and ends
- * when it reaches a final state. Final states are marked with a flag.
+ * The scanner explores a finite state machine (in the form of a DFA) to
+ * decide when to accept and reject possible tokens.
  */
-class FAScanner {
-    var fileHandler: FileHandle
-    var filePointer: UInt64 = 0 // where the file we currently are
-    let dfas: [DFA]
-//    let dfa: DFA
+public class FAScanner {
+    private var fileHandler: FileHandle
+    private var filePointer: UInt64 = 0 // where the file we currently are
+    private let dfa: DFA
 
     init(fileName: String) {
         // At this point, the file confirmed to be existing from Compiler.run
@@ -592,65 +556,59 @@ class FAScanner {
         fileHandler = FileHandle(forReadingAtPath: fileName)!
         fileHandler.seek(toFileOffset: UInt64(0))
         
-        // Setup all DFAs to explore in parallel (using dovetailing - aka move
-        // one step at a time in each DFA until one accepts or all reject).
-        dfas = [
-            IdentifierDFA(),
-            SemicolonDFA(),
-            ColonDFA(),
-            AssignDFA(),
-            CommaDFA(),
-            NewlineDFA(),
-            WhitespaceDFA(),
-            ForDFA(),
-            WhileDFA(),
-            IfDFA(),
-            WhileDFA(),
-            ReturnDFA()
-        ]
-        
-        // If a DFA accepts, stop all DFAs (dovetailed) and return the token. Then, continue reading.
-        // Keep track of the status of all DFAs (three possible statuses: running, accepted, or rejected)
-        // It's possible that multiple DFAs accept, in that case, accept the 'longest' DFA (longest token),
-        // for example, the divide character and a code comment.
-        
-        // If all DFAs reject, then the token is an unknown token. Mark it as unknown and continue reading.
-        
-        // Stop and accept when the string is fully read and in final state.
-        // Stop and reject (mark as unknown token t_unknown) when the string is fully read and NOT in a final state.
+        // Create a 'mega' DFA made up of every 'small' DFA
+        dfa = ColonDFA()
+        dfa.union(RightBracketDFA())
+        dfa.union(LeftBracketDFA())
+        dfa.union(RightSquareBraceDFA())
+        dfa.union(LeftSquareBraceDFA())
+        dfa.union(RightCurlyBraceDFA())
+        dfa.union(LeftCurlyBraceDFA())
+        dfa.union(RightParenDFA())
+        dfa.union(LeftParenDFA())
+        dfa.union(CommaDFA())
+        dfa.union(QuoteDFA())
+        dfa.union(SemicolonDFA())
+        dfa.union(WhitespaceDFA())
+        dfa.union(NewlineDFA())
+        dfa.union(CommentDFA())
+        dfa.union(PlusDFA())
+        dfa.union(MinusDFA())
+        dfa.union(MultiplyDFA())
+        dfa.union(DivideDFA())
+        dfa.union(AssignDFA())
+        dfa.union(EqualDFA())
+        dfa.union(IfDFA())
+        dfa.union(WhileDFA())
+        dfa.union(ReturnDFA())
+        dfa.union(IdentifierDFA())
+        dfa.union(ForDFA())
     }
     
     deinit {
         fileHandler.closeFile()
     }
-    
-    func resetDFAs() -> Void {
-        for dfa in dfas {
-            dfa.reset()
-        }
-    }
 
     /**
-     * Get the next token
+     * Get the next token by exploring the 'mega' DFA.
      */
-    func getToken() -> Token {
-        // Keep the best DFA that we've seen so far (best meaning accepted with longest
-        // number of characters)
-        var relevantAcceptance = false
-        var acceptedDFA: DFA? = nil
+    public func getToken() -> Token {
+        var relevantAcceptance = false // Don't return useless tokens (like whitespace, newline, etc.)
+        var acceptedState: DFAState? = nil
+        var lexeme = ""
         
-        while relevantAcceptance == false {
+        while !relevantAcceptance {
             // Get next character
-            guard var character = self.getCharacter() else {
+            guard let character = self.getCharacter() else {
                 // Character was nil, meaning we've reached the end of the file
                 // (this logic can't be handled by a DFA because EOF doesn't have an ascii value)
-                return Token(type: .t_end_of_file, lexeme: "")
+                return Token(type: .t_end_of_file, lexeme: lexeme)
             }
             
-            // Lookahead 1 if neccessary
-            let nextCharacter = self.getCharacter()
+            // Lookahead 1 character
+            let nextCharacter = self.peekCharacter()
             
-            if character == "\n" {
+            if character == "\n" { // TODO: pretty this up
                 // Increment line count and reset column count
                 Compiler.currentLine += 1
                 Compiler.currentColumn = 0
@@ -658,121 +616,46 @@ class FAScanner {
                 Compiler.currentColumn += 1
             }
             
-            // Reset all DFAs before exploring
-            self.resetDFAs()
+            if lexeme.isEmpty {
+                // reset DFA before exploring the DFA if needed
+                dfa.reset()
+            }
             
-            // This compiler has a lookahead of 1, so when feeding characters into a DFA, we stop feeding when we reach a character that cannot acted upon by that DFA.
+            lexeme += String(character)
             
-            // Dovetail the DFAs with lookahead 1
-            for dfa in dfas {
-                // Attempt to move the DFA into the next state
-                let state = dfa.nextMove(character: character)
+            let state = dfa.nextMove(character: character)
+            
+            // TODO: clean up this logic
+            if state != nil && state!.isFinalState && nextCharacter == nil {
+                // Accept!
+                acceptedState = state
+            } else if state != nil && state!.isFinalState && nextCharacter != nil {
+                // Check (peek) next character for possible acceptance in the DFA
+                // without actually making the move
+                let nextState = dfa.peekNextMove(character: nextCharacter!)
                 
-                if state != nil && nextCharacter != nil {
-                    // A state exists and a next character exists
-                    // Peek at what the next state is (accepting or non-accepting)
-                    let nextStateIsFinal = dfa.peekNextMove(character: nextCharacter!)
-                    
-                    // If state exists, state is an accepting state, and the next state is a non-accepting state or doesn't exist, we've found the next token
-                    if state!.isFinalState && !nextStateIsFinal {
-                        // We've found the next token, but before we can
-                        // accept it, check that it is the longest possible token
-                        if acceptedDFA == nil ||
-                           (dfa.getTokenLength() > acceptedDFA!.getTokenLength()) {
-                            acceptedDFA = dfa
-                            
-                            if dfa.getTokenType() != .t_ignore {
-                                relevantAcceptance = true
-                            }
-                        }
-                    }
-                } /*else if state != nil && nextCharacter == nil {
-                    // A state exists, but no next character exists
-                    if state!.isFinalState {
-                        // We've found the next token, but check that it is the longest possible token
-                        if acceptedDFA == nil ||
-                           (dfa.getTokenLength() > acceptedDFA!.getTokenLength()) {
-                            acceptedDFA = dfa
-                        }
-                        
-                        if dfa.getTokenType() != .t_ignore {
-                            relevantAcceptance = true
-                        }
-                    }
-                }*/
+                if (nextState != nil && !nextState!.isFinalState) || nextState == nil {
+                    // Accept!
+                    acceptedState = state
+                }
+            }
+            
+            if let state = acceptedState {
+                if state.tokenType == .t_ignore {
+                    lexeme = "" // Reset lexeme
+                    acceptedState = nil
+                } else {
+                    relevantAcceptance = true // Break out of loop
+                }
             }
         }
         
-        guard let validTokenDFA = acceptedDFA else {
-            // Unknown token
-            return Token(type: .t_unknown, lexeme: "")
+        if acceptedState != nil {
+            return Token(type: acceptedState!.tokenType, lexeme: lexeme)
         }
         
-        // Accepted dfa is not nil, so there is a valid token!
-        return Token(type: validTokenDFA.getTokenType(), lexeme: validTokenDFA.getTokenValue())
-        
-//        while true {
-//            if dfasExplored == dfas.count {
-//                // moves exhausted for this character, move on to the next character
-//                if let nextCharacter = self.getCharacter() {
-//                    character = nextCharacter
-//                    dfasExplored = 0
-//                } else {
-//                    // reached end of file
-//                    return Token(type: .t_end_of_file, lexeme: "")
-//                }
-//            }
-//
-//            // Explore DFAs 'in parallel' with dovetailing
-//            for dfa in dfas {
-//                dfasExplored += 1
-//                let nextState = dfa.nextMove(character: character)
-//
-//                if nextState == nil {
-//                    // no valid next state to move into
-//                    // take this DFA out of the running for this character
-//                }
-//
-//                if dfa.isAcceptingState() {
-//                    acceptedDFAs += [dfa]
-//                    accepted = true
-//
-//                    // if dfa accepts a useless token, continue until we find a useful token
-//                    if dfa.getTokenType() == .t_ignore {
-//                        // reset all dfas, get next character, and continue
-//                        self.resetDFAs()
-//
-//                        if let nextCharacter = self.getCharacter() {
-//                            character = nextCharacter
-//                            dfasExplored = 0
-//                            accepted = false
-//                            break
-//                        } else {
-//                            // reached end of file
-//                            return Token(type: .t_end_of_file, lexeme: "")
-//                        }
-//                    }
-//
-//                    return Token(type: dfa.getTokenType(), lexeme: dfa.getTokenValue())
-//                }
-//            }
-//        }
-        
-//        // handle case where no DFA accepts
-//        if acceptedDFAs.count == 0 {
-//            // unknown token
-//            return Token(type: .t_unknown, lexeme: "")
-//        }
-//
-//        if acceptedDFAs.count == 1 {
-//            let dfa = acceptedDFAs.first!
-//            return Token(type: dfa.getTokenType(), lexeme: dfa.getTokenValue())
-//        }
-        
-        // If there are more than 1 accepting DFAs, choose the DFA with the longest token value
-        // Do a max on the acceptedDFAs with the tokenValue key
-        // TODO: clean this up
-        // let maxToken = acceptedDFAs.map{$0.getTokenLength()}.max()
+        // No valid token found
+        return Token(type: .t_unknown, lexeme: "")
     }
 
     /**
@@ -783,13 +666,13 @@ class FAScanner {
      * Returns nil if there are no more characters to read.
      */
     private func getCharacter() -> Character? {
-        defer {
-            // seek to next byte for the next read
-            filePointer += 1
-            fileHandler.seek(toFileOffset: filePointer)
-        }
+        let character = self.peekCharacter()
         
-        return self.peekCharacter()
+        // seek to next byte for the next read
+        filePointer += 1
+        fileHandler.seek(toFileOffset: filePointer)
+        
+        return character
     }
     
     /**
@@ -800,19 +683,22 @@ class FAScanner {
     private func peekCharacter() -> Character? {
         // read 1 byte (1 character)
         let data = fileHandler.readData(ofLength: 1)
-
+        
+        // Stay in same location as before the read
+        fileHandler.seek(toFileOffset: filePointer)
+        
         if data.count == 0 {
             // there's nothing to read, so return nil
             return nil
         }
-
+        
         guard let characterStringValue = String(data: data, encoding: String.Encoding.utf8) else {
             // there's nothing else to read, so return nil
             return nil
         }
         
         let character = Character(characterStringValue) // character representation of single character in string
-
+        
         return character
     }
 }
